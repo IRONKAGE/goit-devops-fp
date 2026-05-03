@@ -1,0 +1,70 @@
+services:
+  localstack:
+    image: localstack/localstack-pro:latest
+    container_name: localstack_main_fp
+    ports:
+      - "4566:4566"
+      - "4510-4559:4510-4559"
+    environment:
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN}
+      - DEBUG=1
+    volumes:
+      - "./volume_fp:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+  #PostgreSQL: Надійна об'єктно-реляційна система
+  postgres:
+    image: postgres:18-alpine
+    container_name: rdb_postgres_fp
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - rdb_postgres_fp:/var/lib/postgresql/data
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MySQL: Класична реляційна база даних(необов'язково, але для різноманітності)
+  mysql:
+    image: mysql:9.7
+    container_name: rdb_mysql_fp
+    restart: unless-stopped
+    profiles:
+      - mysql_backend
+    ports:
+      - "127.0.0.1:3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASS}
+      MYSQL_DATABASE: ${MYSQL_DB}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASS}
+    volumes:
+      - rdb_mysql_fp:/var/lib/mysql
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "$${MYSQL_USER}", "-p$${MYSQL_PASS}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  django:
+    build: .
+    container_name: django_web_fp
+    env_file: .env
+    volumes:
+      - ./core:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  rdb_postgres_fp:
+  rdb_mysql_fp:

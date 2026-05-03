@@ -1,0 +1,58 @@
+environment: "dev" # За замовчуванням dev. Jenkins змінить це на "prod" під час AWS деплою.
+
+replicaCount: 2
+image:
+  repository: ""
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: "nginx" # Використовуватиметься тільки в Dev
+  annotations: {}
+
+  # Використовуються тільки якщо Prod для AWS ALB
+  alb:
+    # Замінити ці значення або підставляй через Jenkins sed
+    certificateArn: ""
+    wafArn: ""
+
+  hosts:
+    - host: ""
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: "django-app-tls"
+      hosts:
+        - ""
+
+env:
+  DEBUG: "0"
+  ALLOWED_HOSTS: "*"
+  POSTGRES_DB: "django_db"
+  POSTGRES_USER: "db_admin"
+  POSTGRES_HOST: "postgres-service"
+  POSTGRES_PORT: "5432"
+
+secrets:
+  SECRET_KEY: ""
+  POSTGRES_PASSWORD: ""
+
+hpa:
+  enabled: true
+
+celery:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 50
+    sqs:
+      # Для LocalStack це буде щось типу http://172.18.0.2:4566/000000000000/celery-queue
+      # Для Jenkins/Prod це через --set під час деплою
+      queueUrl: "https://sqs.eu-central-1.amazonaws.com/123456789012/celery-queue"
+      queueLength: "10"
+      region: "eu-central-1"
