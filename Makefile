@@ -1,11 +1,11 @@
 # ==============================================================================
-# AWS DevOps Makefile (Enterprise UI + Terragrunt + Helm + Ingress)
+# AWS DevOps Makefile (Enterprise UI + Terragrunt + Helm + Ingress + DevSecOps)
 # ==============================================================================
 
 # Підтягуємо змінні для Helm (ігноруємо коментарі та порожні рядки)
 ifneq (,$(wildcard ./.env))
-    include .env
-    export $(shell awk -F= '/^[a-zA-Z_]/ {print $$1}' .env)
+	include .env
+	export $(shell awk -F= '/^[a-zA-Z_]/ {print $$1}' .env)
 endif
 
 # 0. Кросплатформна підтримка (ОС та Docker)
@@ -42,29 +42,30 @@ endif
 
 # 4. Інтелектуальна логіка Ingress та змінні Helm
 HELM_SET_FLAGS := \
-    --set secrets.SECRET_KEY=$(DJANGO_SECRET_KEY) \
-    --set secrets.POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
-    --set env.POSTGRES_HOST=$(POSTGRES_HOST) \
-    --set env.POSTGRES_USER=$(POSTGRES_USER) \
-    --set env.POSTGRES_DB=$(POSTGRES_DB)
+	--set secrets.SECRET_KEY=$(DJANGO_SECRET_KEY) \
+	--set secrets.POSTGRES_PASSWORD=$(POSTGRES_PASSWORD) \
+	--set env.POSTGRES_HOST=$(POSTGRES_HOST) \
+	--set env.POSTGRES_USER=$(POSTGRES_USER) \
+	--set env.POSTGRES_DB=$(POSTGRES_DB)
 
 ifneq ($(DOMAIN),)
-    HELM_SET_FLAGS += \
-        --set ingress.enabled=true \
-        --set ingress.hosts[0].host=$(DOMAIN) \
-        --set ingress.tls[0].hosts[0]=$(DOMAIN)
-    USE_DOMAIN := true
+	HELM_SET_FLAGS += \
+		--set ingress.enabled=true \
+		--set ingress.hosts[0].host=$(DOMAIN) \
+		--set ingress.tls[0].hosts[0]=$(DOMAIN)
+	USE_DOMAIN := true
 else
-    HELM_SET_FLAGS += --set ingress.enabled=false
-    USE_DOMAIN := false
+	HELM_SET_FLAGS += --set ingress.enabled=false
+	USE_DOMAIN := false
 endif
 
 .DEFAULT_GOAL := help
 
 # Додано ВСІ цілі, щоб уникнути конфліктів з файлами
 .PHONY: help docker-ensure up down test-local test-aws deploy-local deploy-aws \
-        bootstrap-cluster deploy-app open-jenkins open-argocd db-check db-shell \
-        db-migrate destroy-local destroy-aws clean deep-clean
+		bootstrap-cluster deploy-app open-jenkins open-argocd db-check db-shell \
+		db-migrate destroy-local destroy-aws clean deep-clean check-all pf-jenkins \
+		pf-argocd pf-grafana pf-vault lint
 
 # ==============================================================================
 # БАЗОВЕ МЕНЮ
@@ -74,23 +75,37 @@ help:
 	@echo "==============================================================================="
 	@echo "                    Доступні команди (Terragrunt + Helm):"
 	@echo "==============================================================================="
-	@echo "  make help                        - Показати це меню"
+	@echo " [🚀 ІНФРАСТРУКТУРА ТА ДЕПЛОЙ]"
 	@echo "  make up                          - Запустити LocalStack Pro"
 	@echo "  make down                        - Зупинити LocalStack Pro"
 	@echo "  make test-local [env]            - План локального розгортання"
 	@echo "  make test-aws [env]              - План бойового розгортання (AWS)"
 	@echo "  make deploy-local [env]          - Деплой локально (LocalStack Pro)"
-	@echo "  make open-jenkins                - Відкрити UI Jenkins та прокинути порт"
-	@echo "  make open-argocd                 - Відкрити UI ArgoCD та прокинути порт"
 	@echo "  make deploy-aws [env]            - Бойовий деплой (ClusterIP)"
 	@echo "  make deploy-aws [env] [domain]   - Бойовий деплой (Ingress + TLS)"
+	@echo ""
+	@echo " [🛡️ БЕЗПЕКА ТА ЯКІСТЬ КОДУ (DevSecOps)]"
+	@echo "  make lint                        - Перевірка Terraform, Helm лінтинг та Trivy"
+	@echo ""
+	@echo " [📊 ПЕРЕВІРКА ТА OBSERVABILITY (Final Project)]"
+	@echo "  make check-all                   - Перевірити статус усіх ресурсів (Jenkins, Argo, Prom, Vault)"
+	@echo "  make pf-jenkins                  - Прокинути порт Jenkins (8080)"
+	@echo "  make pf-argocd                   - Прокинути порт ArgoCD (8081)"
+	@echo "  make pf-grafana                  - Прокинути порт Grafana (3000)"
+	@echo "  make pf-vault                    - Прокинути порт HashiCorp Vault (8200)"
+	@echo "  make open-jenkins                - Відкрити UI Jenkins + Автологін (Тільки macOS)"
+	@echo "  make open-argocd                 - Відкрити UI ArgoCD + Автологін (Тільки macOS)"
+	@echo ""
+	@echo " [🛢️ БАЗИ ДАНИХ (Django)]"
 	@echo "  make db-check [env]              - Перевірити конект Django до БД"
 	@echo "  make db-shell [env]              - Відкрити інтерактивний термінал БД (psql)"
 	@echo "  make db-migrate [env]            - Запустити міграції бази даних"
+	@echo ""
+	@echo " [🧹 ОЧИЩЕННЯ ТА ДЕМОНТАЖ]"
 	@echo "  make destroy-local [env]         - Знищити локальні ресурси"
-	@echo "  make destroy-aws [env]           - Знищити ресурси AWS"
+	@echo "  make destroy-aws [env]           - Повністю знищити ресурси AWS"
 	@echo "  make clean                       - Очистити кеші Terragrunt/Terraform"
-	@echo "  make deep-clean                  - Видалити всі образи та кеші"
+	@echo "  make deep-clean                  - Видалити всі образи Docker та кеші"
 	@echo "==============================================================================="
 	@echo " * Доступні середовища: $(VALID_ENVS)"
 	@echo " * Поточне середовище: $(ENV)"
@@ -117,25 +132,25 @@ down:
 # БРАУЗЕР ТА БУФЕР ОБМІНУ (Кросплатформно)
 # ==============================================================================
 ifeq ($(OS),Windows_NT)
-    OPEN_CMD := start ""
-    CLIP_CMD := clip
-    # Windows не підтримує osascript
-    AUTO_TYPE_JENKINS := echo "[!] Автоматичний ввід доступний лише на macOS"
-    AUTO_TYPE_ARGO := echo "[!] Автоматичний ввід доступний лише на macOS"
+	OPEN_CMD := start ""
+	CLIP_CMD := clip
+	# Windows не підтримує osascript
+	AUTO_TYPE_JENKINS := echo "[!] Автоматичний ввід доступний лише на macOS"
+	AUTO_TYPE_ARGO := echo "[!] Автоматичний ввід доступний лише на macOS"
 else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        OPEN_CMD := xdg-open
-        CLIP_CMD := xclip -selection clipboard 2>/dev/null || xsel --clipboard 2>/dev/null || echo "Буфер не налаштовано"
-        AUTO_TYPE_JENKINS := echo "[!] Автоматичний ввід доступний лише на macOS"
-        AUTO_TYPE_ARGO := echo "[!] Автоматичний ввід доступний лише на macOS"
-    endif
-    ifeq ($(UNAME_S),Darwin)
-        OPEN_CMD := open
-        CLIP_CMD := pbcopy
-        AUTO_TYPE_JENKINS := sleep 4 && osascript -e 'tell application "System Events"' -e 'keystroke "admin"' -e 'key code 48' -e 'keystroke "admin_password_123"' -e 'key code 36' -e 'end tell'
-        AUTO_TYPE_ARGO := sleep 5 && osascript -e 'tell application "System Events"' -e 'keystroke "admin"' -e 'key code 48' -e 'keystroke "$$ARGO_PASS"' -e 'key code 36' -e 'end tell'
-    endif
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		OPEN_CMD := xdg-open
+		CLIP_CMD := xclip -selection clipboard 2>/dev/null || xsel --clipboard 2>/dev/null || echo "Буфер не налаштовано"
+		AUTO_TYPE_JENKINS := echo "[!] Автоматичний ввід доступний лише на macOS"
+		AUTO_TYPE_ARGO := echo "[!] Автоматичний ввід доступний лише на macOS"
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		OPEN_CMD := open
+		CLIP_CMD := pbcopy
+		AUTO_TYPE_JENKINS := sleep 4 && osascript -e 'tell application "System Events"' -e 'keystroke "admin"' -e 'key code 48' -e 'keystroke "admin_password_123"' -e 'key code 36' -e 'end tell'
+		AUTO_TYPE_ARGO := sleep 5 && osascript -e 'tell application "System Events"' -e 'keystroke "admin"' -e 'key code 48' -e 'keystroke "$$ARGO_PASS"' -e 'key code 36' -e 'end tell'
+	endif
 endif
 
 # ==============================================================================
@@ -158,6 +173,18 @@ open-argocd:
 	@echo -n "$(ARGO_PASS)" | $(CLIP_CMD)
 	@(sleep 10 && $(OPEN_CMD) https://localhost:8081 && export ARGO_PASS="$(ARGO_PASS)" && $(AUTO_TYPE_ARGO)) &
 	./tf.sh bash -c "export AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=$(REGION) && aws --endpoint-url=http://172.18.0.2:4566 eks update-kubeconfig --region $(REGION) --name $(CLUSTER_NAME) && sed -i 's/localhost.localstack.cloud/172.18.0.2/g' /root/.kube/config && kubectl port-forward --insecure-skip-tls-verify --address 0.0.0.0 svc/argocd-server -n argocd 8081:443"
+
+# ==============================================================================
+# ПЕРЕВІРКА КОДУ ТА БЕЗПЕКА
+# ==============================================================================
+lint:
+	@echo "🔍 Перевірка форматування Terraform..."
+	$(TG_WRAPPER) fmt -check -recursive
+	@echo "🔍 Лінтинг Helm-чартів..."
+	helm lint ./charts/django-app
+	helm lint ./charts/platform-addons
+	@echo "🛡️ Перевірка безпеки Docker-образу (Trivy)..."
+	trivy image $(APP_NAME):latest --severity HIGH,CRITICAL || echo "[!] Trivy не встановлено або знайдено вразливості (код не блокується для сумісності)"
 
 # ==============================================================================
 # ТЕСТУВАННЯ (Dry-Run)
@@ -254,6 +281,47 @@ db-migrate: docker-ensure
 	@POD=$$($(TG_WRAPPER) kubectl get pods -l app=$(APP_NAME) -o jsonpath='{.items[0].metadata.name}' 2>/dev/null | tail -n 1); \
 	if [ -z "$$POD" ] || [[ "$$POD" == *" "* ]]; then echo "❌ [ПОМИЛКА] Робочий под Django не знайдено!"; exit 1; fi; \
 	$(TG_WRAPPER) kubectl exec -it $$POD -- python manage.py migrate
+
+# =====================================================================
+# 🚀 FINAL PROJECT HELPERS (Для перевірки та демонстрації)
+# =====================================================================
+
+# 📊 Перевірка статусу всіх ресурсів згідно ТЗ
+check-all:
+	@echo "=== СТАН JENKINS ==="
+	kubectl get all -n jenkins
+	@echo "\n=== СТАН ARGOCD ==="
+	kubectl get all -n argocd
+	@echo "\n=== СТАН MONITORING (Prometheus & Grafana) ==="
+	kubectl get all -n monitoring
+	@echo "\n=== СТАН HASHICORP VAULT ==="
+	kubectl get all -n vault
+
+# 🌐 Порт-форвардинг для Jenkins (http://localhost:8080)
+pf-jenkins:
+	@echo "🚀 Перенаправлення Jenkins на порт 8080..."
+	@echo "🔐 Логін: admin | Пароль: (ваш з .env файлу)"
+	kubectl port-forward svc/jenkins 8080:8080 -n jenkins
+
+# 🌐 Порт-форвардинг для Argo CD (https://localhost:8081)
+pf-argocd:
+	@echo "🚀 Перенаправлення Argo CD на порт 8081..."
+	@echo "🔐 Логін: admin"
+	@echo "🔑 Команда для отримання пароля ArgoCD:"
+	@echo "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath=\"{.data.password}\" | base64 -d; echo"
+	kubectl port-forward svc/argocd-server 8081:443 -n argocd
+
+# 🌐 Порт-форвардинг для Grafana (http://localhost:3000)
+pf-grafana:
+	@echo "🚀 Перенаправлення Grafana на порт 3000..."
+	@echo "🔐 Логін: admin | Пароль: (ваша змінна TF_VAR_grafana_admin_password з .env)"
+	kubectl port-forward svc/grafana 3000:80 -n monitoring
+
+# 🌐 Порт-форвардинг для HashiCorp Vault UI (http://localhost:8200)
+pf-vault:
+	@echo "🚀 Перенаправлення Vault UI на порт 8200..."
+	@echo "🔑 Dev Root Token для входу: root"
+	kubectl port-forward svc/vault-ui 8200:8200 -n vault
 
 # ==============================================================================
 # ОЧИЩЕННЯ (Видалення ресурсів)

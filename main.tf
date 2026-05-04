@@ -174,3 +174,24 @@ provider "helm" {
     insecure               = var.environment == "dev" ? true : false
   }
 }
+
+# Змінна для Grafana (додайте також у кореневий variables.tf!)
+variable "grafana_admin_password" {
+  type      = string
+  sensitive = true
+}
+
+module "monitoring" {
+  source                 = "./modules/monitoring"
+  namespace              = "monitoring"
+  grafana_admin_password = var.grafana_admin_password
+
+  depends_on = [module.eks] # Чекаємо, поки підніметься EKS
+}
+
+module "vault" {
+  source     = "./modules/vault"
+  namespace  = "vault"
+
+  depends_on = [module.eks]
+}
