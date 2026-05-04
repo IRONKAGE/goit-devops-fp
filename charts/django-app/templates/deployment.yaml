@@ -15,11 +15,21 @@ spec:
         app: {{ .Release.Name }}
     spec:
       # ==========================================
-      # 0. INIT CONTAINERS (Перевірка готовності БД)
+      # 0. БЕЗПЕКА ПОДА (Security Context)
+      # ==========================================
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # ==========================================
+      # 1. INIT CONTAINERS (Перевірка готовності БД)
       # ==========================================
       initContainers:
         - name: wait-for-db
           image: busybox:1.36
+          securityContext:
+            allowPrivilegeEscalation: false
           command:
             - 'sh'
             - '-c'
@@ -33,6 +43,10 @@ spec:
       containers:
         - name: django
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          # Ізоляція контейнера
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false # Встановити true, якщо Django не пише локальних логів/медіа
           ports:
             - containerPort: 8000
 
@@ -64,7 +78,7 @@ spec:
                   key: DB_USER
 
           # ==========================================
-          # 1. PROBES (Самовідновлення кластера)
+          # 2. PROBES (Самовідновлення кластера)
           # ==========================================
           livenessProbe:
             httpGet:
@@ -80,7 +94,7 @@ spec:
             periodSeconds: 5
 
           # ==========================================
-          # 2. RESOURCES (Захист від "падіння" серверів)
+          # 3. RESOURCES (Захист від "падіння" серверів)
           # ==========================================
           resources:
             requests:

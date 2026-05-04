@@ -5,8 +5,13 @@ resource "aws_eks_cluster" "main" {
 
   vpc_config {
     subnet_ids              = var.subnet_ids
-    endpoint_private_access = true # Доступ вузлів до API без інтернету
-    endpoint_public_access  = true # Можливість керувати кластером локально
+    endpoint_private_access = true # Доступ вузлів до API всередині VPC
+
+    # БЕЗПЕКА: Вимикаємо публічний доступ для Prod-середовища
+    endpoint_public_access  = var.environment == "prod" ? false : true
+
+    # Якщо публічний доступ потрібен, жорстко обмежуємо його нашим IP
+    # public_access_cidrs     = var.environment == "prod" ? [] : ["0.0.0.0/0"]
   }
 
   # Увімкнення логів аудиту для CloudWatch
@@ -18,7 +23,7 @@ resource "aws_eks_cluster" "main" {
   # ]
 }
 
-# Приклад конфігурації Node Group (робочих вузлів)
+# Конфігурація Node Group (робочих вузлів)
 resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "${var.cluster_name}-node-group"
@@ -49,4 +54,37 @@ resource "aws_iam_openid_connect_provider" "eks" {
   # Використовуємо його жорстко захардкодженим, щоб уникнути помилок завантаження!
   thumbprint_list = ["9e99a48a9960b14926bb7f3b02e22da2b0ab7280"]
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+# Роль для AWS Load Balancer Controller
+module "load_balancer_controller_irsa_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name                              = "${var.cluster_name}-alb-controller-role"
+  attach_load_balancer_controller_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = aws_iam_openid_connect_provider.eks.arn
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
+  }
+}
+
+# Роль для External Secrets Operator
+module "external_secrets_irsa_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name                      = "${var.cluster_name}-external-secrets-role"
+  attach_external_secrets_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = aws_iam_openid_connect_provider.eks.arn
+      # Переконайтеся, що ESO розгорнуто саме в неймспейсі 'default'
+      namespace_service_accounts = ["default:external-secrets"]
+    }
+  }
 }
