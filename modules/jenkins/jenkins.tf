@@ -7,7 +7,7 @@ resource "helm_release" "jenkins" {
 
   replace          = true
   cleanup_on_fail  = true
-  timeout          = 600
+  timeout          = 900
 
   wait             = true
 
@@ -30,6 +30,6 @@ resource "helm_release" "jenkins" {
   # 3. Збільшуємо ліміт терпіння Kubernetes (60 спроб по 10 сек = 10 хвилин)
   set {
     name  = "controller.probes.startupProbe.failureThreshold"
-    value = "60"
+    value = "90"
   }
 }

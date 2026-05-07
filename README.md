@@ -4,7 +4,7 @@
 
 # **Фінальне завдання: Розгортання інфраструктури DevOps на AWS**
 
-## **Опис завдання:
+## **Опис завдання:**
 
 ### Основна мета фінального проекту:
 
@@ -103,73 +103,73 @@
 ```md
 goit-devops-hw-fp/
 │
-├── main.tf         # Головний файл для підключення модулів
-├── backend.tf        # Налаштування бекенду для стейтів (S3 + DynamoDB
-├── outputs.tf        # Загальні виводи ресурсів
+├── main.tf         # Головний файл для підключення модулів
+├── backend.tf      # Налаштування бекенду для стейтів (S3 + DynamoDB)
+├── outputs.tf      # Загальні виводи ресурсів
 │
-├── modules/         # Каталог з усіма модулями
-│  ├── s3-backend/     # Модуль для S3 та DynamoDB
-│  │  ├── s3.tf      # Створення S3-бакета
-│  │  ├── dynamodb.tf   # Створення DynamoDB
-│  │  ├── variables.tf   # Змінні для S3
-│  │  └── outputs.tf    # Виведення інформації про S3 та DynamoDB
-│  │
-│  ├── vpc/         # Модуль для VPC
-│  │  ├── vpc.tf      # Створення VPC, підмереж, Internet Gateway
-│  │  ├── routes.tf    # Налаштування маршрутизації
-│  │  ├── variables.tf   # Змінні для VPC
-│  │  └── outputs.tf  
-│  ├── ecr/         # Модуль для ECR
-│  │  ├── ecr.tf      # Створення ECR репозиторію
-│  │  ├── variables.tf   # Змінні для ECR
-│  │  └── outputs.tf    # Виведення URL репозиторію
-│  │
-│  ├── eks/           # Модуль для Kubernetes кластера
-│  │  ├── eks.tf        # Створення кластера
-│  │  ├── aws_ebs_csi_driver.tf # Встановлення плагіну csi drive
-│  │  ├── variables.tf   # Змінні для EKS
-│  │  └── outputs.tf    # Виведення інформації про кластер
-│  │
-│  ├── rds/         # Модуль для RDS
-│  │  ├── rds.tf      # Створення RDS бази даних  
-│  │  ├── aurora.tf    # Створення aurora кластера бази даних  
-│  │  ├── shared.tf    # Спільні ресурси  
-│  │  ├── variables.tf   # Змінні (ресурси, креденшели, values)
-│  │  └── outputs.tf  
-│  │ 
-│  ├── jenkins/       # Модуль для Helm-установки Jenkins
-│  │  ├── jenkins.tf    # Helm release для Jenkins
-│  │  ├── variables.tf   # Змінні (ресурси, креденшели, values)
-│  │  ├── providers.tf   # Оголошення провайдерів
-│  │  ├── values.yaml   # Конфігурація jenkins
-│  │  └── outputs.tf    # Виводи (URL, пароль адміністратора)
-│  │ 
-│  └── argo_cd/       # ✅ Новий модуль для Helm-установки Argo CD
-│    ├── jenkins.tf    # Helm release для Jenkins
-│    ├── variables.tf   # Змінні (версія чарта, namespace, repo URL тощо)
-│    ├── providers.tf   # Kubernetes+Helm. переносимо з модуля jenkins
-│    ├── values.yaml   # Кастомна конфігурація Argo CD
-│    ├── outputs.tf    # Виводи (hostname, initial admin password)
-│		  └──charts/         # Helm-чарт для створення app'ів
-│ 	 	  ├── Chart.yaml
-│	 	  ├── values.yaml     # Список applications, repositories
-│			  └── templates/
-│		    ├── application.yaml
-│		    └── repository.yaml
+├── modules/         # Каталог з усіма модулями
+│  ├── s3-backend/     # Модуль для S3 та DynamoDB
+│  │  ├── s3.tf      # Створення S3-бакета
+│  │  ├── dynamodb.tf   # Створення DynamoDB
+│  │  ├── variables.tf   # Змінні для S3
+│  │  └── outputs.tf    # Виведення інформації про S3 та DynamoDB
+│  │
+│  ├── vpc/         # Модуль для VPC
+│  │  ├── vpc.tf      # Створення VPC, підмереж, Internet Gateway
+│  │  ├── routes.tf    # Налаштування маршрутизації
+│  │  ├── variables.tf   # Змінні для VPC
+│  │  └── outputs.tf
+│  ├── ecr/         # Модуль для ECR
+│  │  ├── ecr.tf      # Створення ECR репозиторію
+│  │  ├── variables.tf   # Змінні для ECR
+│  │  └── outputs.tf    # Виведення URL репозиторію
+│  │
+│  ├── eks/           # Модуль для Kubernetes кластера
+│  │  ├── eks.tf        # Створення кластера
+│  │  ├── aws_ebs_csi_driver.tf # Встановлення плагіну csi drive
+│  │  ├── variables.tf   # Змінні для EKS
+│  │  └── outputs.tf    # Виведення інформації про кластер
+│  │
+│  ├── rds/         # Модуль для RDS
+│  │  ├── rds.tf      # Створення RDS бази даних
+│  │  ├── aurora.tf    # Створення aurora кластера бази даних
+│  │  ├── shared.tf    # Спільні ресурси
+│  │  ├── variables.tf   # Змінні (ресурси, креденшели, values)
+│  │  └── outputs.tf
+│  │
+│  ├── jenkins/       # Модуль для Helm-установки Jenkins
+│  │  ├── jenkins.tf    # Helm release для Jenkins
+│  │  ├── variables.tf   # Змінні (ресурси, креденшели, values)
+│  │  ├── providers.tf   # Оголошення провайдерів
+│  │  ├── values.yaml   # Конфігурація jenkins
+│  │  └── outputs.tf    # Виводи (URL, пароль адміністратора)
+│  │
+│  └── argo_cd/       # ✅ Новий модуль для Helm-установки Argo CD
+│    ├── jenkins.tf    # Helm release для Jenkins
+│    ├── variables.tf   # Змінні (версія чарта, namespace, repo URL тощо)
+│    ├── providers.tf   # Kubernetes+Helm. переносимо з модуля jenkins
+│    ├── values.yaml   # Кастомна конфігурація Argo CD
+│    ├── outputs.tf    # Виводи (hostname, initial admin password)
+│       └──charts/         # Helm-чарт для створення app'ів
+│       ├── Chart.yaml
+│       ├── values.yaml     # Список applications, repositories
+│           └── templates/
+│           ├── application.yaml
+│           └── repository.yaml
 ├── charts/
-│  └── django-app/
-│    ├── templates/
-│    │  ├── deployment.yaml
-│    │  ├── service.yaml
-│    │  ├── configmap.yaml
-│    │  └── hpa.yaml
-│    ├── Chart.yaml
-│    └── values.yaml   # ConfigMap зі змінними середовища
+│  └── django-app/
+│    ├── templates/
+│    │  ├── deployment.yaml
+│    │  ├── service.yaml
+│    │  ├── configmap.yaml
+│    │  └── hpa.yaml
+│    ├── Chart.yaml
+│    └── values.yaml   # ConfigMap зі змінними середовища
 └──Django
-			 ├── app\
-			 ├── Dockerfile
-			 ├── Jenkinsfile
-			 └── docker-compose.yaml
+             ├── app/
+             ├── Dockerfile
+             ├── Jenkinsfile
+             └── docker-compose.yaml
 ```
 
 **Формат здачі:**
@@ -178,6 +178,8 @@ goit-devops-hw-fp/
 2. Прикріплені файли репозиторію у форматі `zip` із назвою `final_DevOps_ПІБ`
 
 ---
+
+# 🚀 Реалізація проекту (Enterprise Edition)
 
 ## 🛠 Prerequisites (Що потрібно для запуску)
 
@@ -226,6 +228,105 @@ TF_VAR_grafana_admin_password="Super_Grafana_Password_123!"
 ```
 
 *Make-скрипти автоматично підтягнуть ці змінні під час деплою.*
+
+---
+
+## 🚀 Запуск та розгортання
+
+Весь процес розгортання інфраструктури та застосунків керується через утиліту `make`. Щоб побачити повний список доступних команд, їх опис та можливості автоматизації, просто виконайте:
+
+```bash
+make help
+```
+
+Завдяки глибокій інтеграції обгортки `tf.sh` та `Terragrunt`, процес зведено до однієї команди. Terragrunt автоматично розв'язує проблеми залежностей, створює S3 бакет та DynamoDB таблицю перед початком роботи.
+
+**Для локального розгортання (LocalStack Pro):**
+
+```bash
+make deploy-local dev
+```
+
+***або якщо щось йде не так... перед тим, як запускати ці команди видаліть контейнери та почистіть все...***
+
+1. Крок: Будуємо фундамент *(VPC + EKS + RDS)*:
+
+***Linux/UNIX/macOS:***
+
+```bash
+docker compose up -d localstack && sleep 15 && ./tf.sh tflocal apply -target=module.eks -target=module.rds -var-file=dev.tfvars -auto-approve
+```
+
+***Windows (CMD):***
+
+```bash
+docker compose up -d localstack && timeout /t 15 /nobreak && .\tf.cmd tflocal apply -target=module.eks -target=module.rds -var-file=dev.tfvars -auto-approve
+```
+
+***Windows (PowerShell):***
+
+```bash
+docker compose up -d localstack; Start-Sleep -Seconds 15; .\tf.cmd tflocal apply -target=module.eks -target=module.rds -var-file=dev.tfvars -auto-approve
+```
+
+2. Крок: Записуємо конфіг кластера *(AWS CLI)*:
+
+***Linux/UNIX/macOS:***
+
+```bash
+AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test aws --endpoint-url=http://localhost:4566 eks update-kubeconfig --region eu-central-1 --name ironkage-k8s-fp-dev
+```
+
+***Windows (CMD):***
+
+```bash
+set AWS_ACCESS_KEY_ID=test && set AWS_SECRET_ACCESS_KEY=test && aws --endpoint-url=http://localhost:4566 eks update-kubeconfig --region eu-central-1 --name ironkage-k8s-fp-dev
+```
+
+***Windows (PowerShell):***
+
+```bash
+$env:AWS_ACCESS_KEY_ID="test"; $env:AWS_SECRET_ACCESS_KEY="test"; aws --endpoint-url=http://localhost:4566 eks update-kubeconfig --region eu-central-1 --name ironkage-k8s-fp-dev
+```
+
+3. Крок: Розгортаємо софт *(Jenkins, ArgoCD, Vault, Grafana)*:
+
+```bash
+make deploy-local dev
+```
+
+**Для бойового розгортання (AWS Cloud):**
+
+```bash
+make deploy-aws prod
+```
+
+---
+
+> 💡 **РЕМАРКА: Vanilla Terraform Bootstrapping (Шпаргалка)**
+>
+> проект спроектований так, що автоматизація робить усе самостійно. Проте, якщо виникне потреба розгорнути інфраструктуру, використовуючи **виключно чистий Terraform** (наприклад, для перевірки логіки без Terragrunt), необхідно виконати ручний "бутстрапінг" S3 Backend, щоб уникнути проблеми "курки та яйця":
+>
+> 1. **Підготовка:** Переконайтеся, що код у файлі `backend.tf` закоментований.
+> 2. **Створення бекенду:** Розгорніть тільки ресурси для зберігання стейту (стейт поки збережеться локально):
+>
+>    ```bash
+>    terraform init
+>    terraform apply -target=module.s3_backend -var-file=prod.tfvars
+>    ```
+>
+> 3. **Активація віддаленого стейту:** Розкоментуйте код у файлі `backend.tf`.
+> 4. **Міграція:** Перенесіть локальний стейт у щойно створений S3 бакет:
+>
+>    ```bash
+>    terraform init -migrate-state
+>    ```
+>
+> 5. **Завершення деплою:** Розгорніть решту інфраструктури:
+>
+>    ```bash
+>    terraform apply -var-file=prod.tfvars
+>    ```
 
 ---
 

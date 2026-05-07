@@ -4,9 +4,9 @@ resource "helm_release" "prometheus_stack" {
   chart            = "kube-prometheus-stack"
   namespace        = var.namespace
   create_namespace = true
-  timeout          = 600
+  timeout          = 900
 
-  # 💡 ТРИК ДЛЯ ВИКЛАДАЧА: Перевизначаємо ім'я сервісу Grafana,
+  # Перевизначаємо ім'я сервісу Grafana,
   # щоб команда з ТЗ `kubectl port-forward svc/grafana...` спрацювала ідеально!
   set {
     name  = "grafana.fullnameOverride"

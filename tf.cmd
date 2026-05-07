@@ -42,7 +42,11 @@ if "%~1"=="tflocal" (
 
     :: Запускаємо Terraform, використовуючи ТІЛЬКИ IP-адресу
     docker run --rm -it ^
+        --env-file .env ^
+        --add-host="s3.localhost.localstack.cloud:!LS_IP!" ^
+        --add-host="localhost.localstack.cloud:!LS_IP!" ^
         -v "%cd%":/workspace ^
+        -v "%USERPROFILE%\.kube":/root/.kube ^
         --network "!LS_NETWORK!" ^
         -e PYTHONUNBUFFERED=1 ^
         -e LOCALSTACK_HOST="!LS_IP!" ^
@@ -63,6 +67,7 @@ if "%~1"=="tflocal" (
 
     :: Запускаємо бойовий тулчейн із розширеним монтуванням
     docker run --rm -it ^
+        --env-file .env ^
         -v "%cd%":/workspace ^
         -v "%USERPROFILE%\.aws":/root/.aws ^
         -v "%USERPROFILE%\.kube":/root/.kube ^

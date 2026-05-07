@@ -1,5 +1,6 @@
 output "vpc_id" {
-  value = module.vpc.vpc_id
+  description = "ID створеної VPC"
+  value       = module.vpc.vpc_id
 }
 
 output "ecr_repository_url" {
@@ -8,13 +9,13 @@ output "ecr_repository_url" {
 }
 
 output "eks_cluster_name" {
-  description = "Виводимо тільки якщо модуль EKS увімкнений"
-  value = length(module.eks) > 0 ? module.eks[0].cluster_name : "EKS is disabled"
+  description = "Назва EKS кластера"
+  value       = module.eks.cluster_name
 }
 
 output "update_kubeconfig_command" {
   description = "Команда для налаштування доступу до кластера"
-  value       = length(module.eks) > 0 ? "aws eks update-kubeconfig --region ${var.region} --name ${module.eks[0].cluster_name}" : "EKS disabled"
+  value       = "aws eks update-kubeconfig --region ${var.region} --name ${module.eks.cluster_name}"
 }
 
 output "db_endpoint" {

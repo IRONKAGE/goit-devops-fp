@@ -9,15 +9,12 @@ resource "aws_eks_cluster" "main" {
 
     # БЕЗПЕКА: Вимикаємо публічний доступ для Prod-середовища
     endpoint_public_access  = var.environment == "prod" ? false : true
-
-    # Якщо публічний доступ потрібен, жорстко обмежуємо його нашим IP
-    # public_access_cidrs     = var.environment == "prod" ? [] : ["0.0.0.0/0"]
   }
 
   # Увімкнення логів аудиту для CloudWatch
   enabled_cluster_log_types = var.enabled_cluster_log_types
 
-  # Захист від видалення IAM ролі до видалення кластера
+  # Захист від гонки ресурсів (Race Condition) під час створення кластера
   # depends_on = [
   #   aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy
   # ]
@@ -37,7 +34,6 @@ resource "aws_eks_node_group" "nodes" {
   }
 
   instance_types = var.node_instance_types
-
   # Рекомендується використовувати ON_DEMAND для стабільності бази/ML
   capacity_type  = "ON_DEMAND"
 
@@ -47,7 +43,7 @@ resource "aws_eks_node_group" "nodes" {
   }
 }
 
-# OIDC & IRSA (Працює і для AWS, і для LocalStack БЕЗ data-source)
+# OIDC & IRSA (Логіка збережена для підтримки LocalStack)
 resource "aws_iam_openid_connect_provider" "eks" {
   client_id_list  = ["sts.amazonaws.com"]
   # Це стандартний глобальний відбиток Root CA для AWS EKS.
@@ -56,35 +52,7 @@ resource "aws_iam_openid_connect_provider" "eks" {
   url             = aws_eks_cluster.main.identity[0].oidc[0].issuer
 }
 
-# Роль для AWS Load Balancer Controller
-module "load_balancer_controller_irsa_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.0"
-
-  role_name                              = "${var.cluster_name}-alb-controller-role"
-  attach_load_balancer_controller_policy = true
-
-  oidc_providers = {
-    ex = {
-      provider_arn               = aws_iam_openid_connect_provider.eks.arn
-      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
-    }
-  }
-}
-
-# Роль для External Secrets Operator
-module "external_secrets_irsa_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.0"
-
-  role_name                      = "${var.cluster_name}-external-secrets-role"
-  attach_external_secrets_policy = true
-
-  oidc_providers = {
-    ex = {
-      provider_arn               = aws_iam_openid_connect_provider.eks.arn
-      # Переконайтеся, що ESO розгорнуто саме в неймспейсі 'default'
-      namespace_service_accounts = ["default:external-secrets"]
-    }
-  }
-}
+# ==============================================================================
+# УВАГА: Всі IAM ролі (IRSA) винесені в окремий файл iam_irsa.tf
+# для дотримання принципів чистого коду (DRY) та уникнення дублювання.
+# ==============================================================================

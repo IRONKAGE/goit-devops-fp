@@ -31,7 +31,11 @@ if [ "$1" = "tflocal" ]; then
     echo "[*] LocalStack Pro: Мережа = $LS_NETWORK | IP = $LS_IP"
 
     docker run --rm -it \
+        --env-file .env \
+        --add-host="s3.localhost.localstack.cloud:$LS_IP" \
+        --add-host="localhost.localstack.cloud:$LS_IP" \
         -v "$(pwd)":/workspace \
+        -v ~/.kube:/root/.kube \
         --network "$LS_NETWORK" \
         -e PYTHONUNBUFFERED=1 \
         -e LOCALSTACK_HOST="$LS_IP" \
@@ -50,6 +54,7 @@ else
 
     # Монтуємо РЕАЛЬНІ ключі AWS, конфіги Kubernetes, SSH-ключі та ВІДКРИВАЄМО ПОРТИ
     docker run --rm -it \
+        --env-file .env \
         --network "$PROD_NETWORK" \
         -v "$(pwd)":/workspace \
         -v ~/.aws:/root/.aws \

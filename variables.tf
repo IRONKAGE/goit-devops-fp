@@ -18,12 +18,6 @@ variable "node_max_size" { type = number }
 variable "node_desired_size" { type = number }
 variable "enabled_cluster_log_types" { type = list(string) }
 
-variable "enable_eks" {
-  description = "Вмикає або вимикає розгортання модуля EKS (для обходу LocalStack Pro)"
-  type        = bool
-  default     = true
-}
-
 variable "github_repo" {
   description = "URL GitHub репозиторію для підключення GitOps"
   type        = string
@@ -41,8 +35,19 @@ variable "engine_version" {
   default     = "18"
 }
 
+variable "grafana_admin_password" {
+  description = "Пароль адміністратора Grafana"
+  type        = string
+  sensitive   = true
+}
+
 variable "jenkins_admin_password" {
   description = "Пароль адміністратора Jenkins"
   type        = string
   sensitive   = true
+}
+
+variable "jenkins_admin_username" {
+  description = "Логін адміністратора Jenkins"
+  type        = string
 }

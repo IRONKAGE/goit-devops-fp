@@ -9,7 +9,30 @@ terraform {
     }
     helm = {
       source  = "hashicorp/helm"
-      version = ">= 2.12"
+      version = "~> 2.17.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.region
+
+  # Налаштування для коректної роботи S3 та AWS API в LocalStack через Docker
+  s3_use_path_style           = true
+  skip_credentials_validation = true
+  skip_metadata_api_check     = true
+  skip_requesting_account_id  = true
+
+  dynamic "endpoints" {
+    for_each = var.environment == "dev" ? [1] : []
+    content {
+      s3       = "http://${var.localstack_ip}:4566"
+      dynamodb = "http://${var.localstack_ip}:4566"
+      ec2      = "http://${var.localstack_ip}:4566"
+      eks      = "http://${var.localstack_ip}:4566"
+      iam      = "http://${var.localstack_ip}:4566"
+      rds      = "http://${var.localstack_ip}:4566"
+      ecr      = "http://${var.localstack_ip}:4566"
     }
   }
 }
@@ -81,7 +104,6 @@ resource "aws_iam_role_policy_attachment" "eks_container_registry_policy" {
 
 module "eks" {
   source = "./modules/eks"
-  count  = var.enable_eks ? 1 : 0
 
   environment               = var.environment
   cluster_name              = var.cluster_name
@@ -108,10 +130,8 @@ module "eks" {
 module "jenkins" {
   source                 = "./modules/jenkins"
   namespace              = "jenkins"
-
   jenkins_admin_username = var.jenkins_admin_username
   jenkins_admin_password = var.jenkins_admin_password
-
   depends_on             = [module.eks]
 }
 
@@ -138,7 +158,6 @@ module "rds" {
   # Якщо це prod -> розгортаємо Aurora Serverless v2.
   # Якщо dev (LocalStack) -> падаємо на звичайний RDS.
   use_aurora         = var.environment == "prod" ? true : false
-
   engine_version     = var.engine_version
 
   # Параметри для фолбеку (використовуються у Dev / LocalStack Pro)
@@ -153,45 +172,36 @@ module "rds" {
 # НАЛАШТУВАННЯ HELM ПРОВАЙДЕРА
 # ---------------------------------------------
 data "aws_eks_cluster" "main" {
-  name       = module.eks[0].cluster_name
+  name       = module.eks.cluster_name
   depends_on = [module.eks]
 }
 
 data "aws_eks_cluster_auth" "main" {
-  name       = module.eks[0].cluster_name
+  name       = module.eks.cluster_name
   depends_on = [module.eks]
 }
 
 provider "helm" {
-  kubernetes = {
-    host                   = replace(data.aws_eks_cluster.main.endpoint, "localhost.localstack.cloud", "172.18.0.2")
+  kubernetes {
+    # Для Prod (AWS) - використовуємо безпечну AWS IAM аутентифікацію
+    host                   = var.environment == "prod" ? data.aws_eks_cluster.main.endpoint : null
+    cluster_ca_certificate = var.environment == "prod" ? base64decode(data.aws_eks_cluster.main.certificate_authority[0].data) : null
+    token                  = var.environment == "prod" ? data.aws_eks_cluster_auth.main.token : null
 
-    # Якщо це dev (insecure=true), передаємо null (нічого).
-    # Якщо це prod - даємо сертифікат.
-    cluster_ca_certificate = var.environment == "dev" ? null : base64decode(data.aws_eks_cluster.main.certificate_authority[0].data)
-
-    token                  = data.aws_eks_cluster_auth.main.token
-    insecure               = var.environment == "dev" ? true : false
+    # Для Dev (LocalStack) - ігноруємо токени і змушуємо читати локальний конфіг
+    config_path            = var.environment == "dev" ? "~/.kube/config" : null
   }
-}
-
-# Змінна для Grafana (додайте також у кореневий variables.tf!)
-variable "grafana_admin_password" {
-  type      = string
-  sensitive = true
 }
 
 module "monitoring" {
   source                 = "./modules/monitoring"
   namespace              = "monitoring"
   grafana_admin_password = var.grafana_admin_password
-
-  depends_on = [module.eks] # Чекаємо, поки підніметься EKS
+  depends_on             = [module.eks] # Чекаємо, поки підніметься EKS
 }
 
 module "vault" {
   source     = "./modules/vault"
   namespace  = "vault"
-
   depends_on = [module.eks]
 }

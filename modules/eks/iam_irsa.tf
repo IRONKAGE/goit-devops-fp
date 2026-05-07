@@ -30,6 +30,7 @@ module "external_secrets_irsa_role" {
   oidc_providers = {
     ex = {
       provider_arn               = aws_iam_openid_connect_provider.eks.arn
+      # Переконайтеся, що ESO розгорнуто саме в неймспейсі 'default'
       namespace_service_accounts = ["default:external-secrets"]
     }
   }
